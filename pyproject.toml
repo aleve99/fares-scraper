@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=80.9.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fares-scraper-framework"
+version = "0.5.0"
+description = "A modular, asynchronous framework for scraping airline fares"
+readme = "README.md"
+authors = [
+    {name = "Alessio", email = "alessiovecchiet@gmail.com"}
+]
+license = {text = "GPL-3.0-or-later"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Intended Audience :: Developers",
+]
+requires-python = ">=3.10"
+dependencies = [
+      "aiohttp>=3.13.3",
+      "xxhash>=3.6.0",
+      "pydantic>=2.12.5",
+      "pydantic-settings>=2.12.0"
+  ]
+
+[project.urls]
+"Homepage" = "https://github.com/aleve99/fares-scraper-framework"
+"Bug Tracker" = "https://github.com/aleve99/fares-scraper-framework/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["fares_scraper*"]
+
