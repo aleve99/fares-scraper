@@ -52,11 +52,17 @@ class WizzAirScraper(BaseScraper):
             data = await res.json()
             model = WizzAirMapResponse(**data)
             
-            # Map origin -> connections
-            self._connections = {
-                city.iata: tuple(conn.iata for conn in city.connections)
-                for city in model.cities
+            # Create a set of valid (non-MAC) airport codes
+            valid_iatas = {
+                city.iata for city in model.cities 
                 if not city.isFakeStation and (city.mac is None or city.mac != city.iata)
+            }
+
+            # Map origin -> connections (filtering both origins and destinations)
+            self._connections = {
+                city.iata: tuple(conn.iata for conn in city.connections if conn.iata in valid_iatas)
+                for city in model.cities
+                if city.iata in valid_iatas
             }
             
             # Populate base scraper airports
@@ -67,7 +73,7 @@ class WizzAirScraper(BaseScraper):
                     lng=city.longitude,
                     name=city.shortName
                 ) for city in model.cities
-                if not city.isFakeStation and (city.mac is None or city.mac != city.iata)
+                if city.iata in valid_iatas
             )
         logger.info(f"Successfully updated active airports. Found {len(self.active_airports)}.")
 
