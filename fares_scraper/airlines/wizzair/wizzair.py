@@ -221,6 +221,8 @@ class WizzAirScraper(BaseScraper):
             details = details_map.get((flight.departureStation, flight.arrivalStation, flight.departureDate))
             
             if details:
+                flight_num = self.parse_flight_number(details.flightNumber, details.carrierCode)
+
                 fares.append(
                     OneWayFare(
                         dep_time=flight.departureDate,
@@ -229,7 +231,7 @@ class WizzAirScraper(BaseScraper):
                         destination=flight.arrivalStation,
                         fare=flight.price.amount,
                         currency=flight.price.currencyCode,
-                        flight_number=f"{details.carrierCode}{details.flightNumber}",
+                        flight_number=flight_num,
                         operating_carrier=details.carrierCode,
                         marketing_carrier=details.carrierCode
                     )
@@ -339,6 +341,8 @@ class WizzAirScraper(BaseScraper):
                             continue
 
                         # Construct outbound OneWayFare
+                        out_flight_num = self.parse_flight_number(out_details.flightNumber, out_details.carrierCode)
+
                         out_fare = OneWayFare(
                             dep_time=out.departureDate,
                             arr_time=out_details.arrivalDateTime,
@@ -346,12 +350,14 @@ class WizzAirScraper(BaseScraper):
                             destination=out.arrivalStation,
                             fare=out.price.amount,
                             currency=out.price.currencyCode,
-                            flight_number=f"{out_details.carrierCode}{out_details.flightNumber}",
+                            flight_number=out_flight_num,
                             operating_carrier=out_details.carrierCode,
                             marketing_carrier=out_details.carrierCode
                         )
                         
                         # Construct inbound OneWayFare
+                        ret_flight_num = self.parse_flight_number(ret_details.flightNumber, ret_details.carrierCode)
+
                         ret_fare = OneWayFare(
                             dep_time=ret.departureDate,
                             arr_time=ret_details.arrivalDateTime,
@@ -359,7 +365,7 @@ class WizzAirScraper(BaseScraper):
                             destination=ret.arrivalStation,
                             fare=ret.price.amount,
                             currency=ret.price.currencyCode,
-                            flight_number=f"{ret_details.carrierCode}{ret_details.flightNumber}",
+                            flight_number=ret_flight_num,
                             operating_carrier=ret_details.carrierCode,
                             marketing_carrier=ret_details.carrierCode
                         )

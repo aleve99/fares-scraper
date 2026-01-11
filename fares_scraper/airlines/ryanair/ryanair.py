@@ -127,9 +127,9 @@ class RyanairScraper(BaseScraper):
                         
                         try:
                             # Extract flight number (e.g., "FR1234")
-                            flight_num = info.get('flightNumber', '').replace(' ', '')
-                            # For Ryanair, operating and marketing carrier are typically the same
-                            carrier = flight_num[:2] if len(flight_num) >= 2 else ''
+                            flight_num_raw = info.get('flightNumber', '')
+                            carrier = flight_num_raw.replace(' ', '')[:2] if len(flight_num_raw.replace(' ', '')) >= 2 else ''
+                            flight_num = self.parse_flight_number(flight_num_raw, carrier)
                             
                             fares.append(
                                 OneWayFare(
@@ -480,8 +480,14 @@ class RyanairScraper(BaseScraper):
                         if curr_ret in return_dates_map:
                             for ret_flight in return_dates_map[curr_ret]:
                                 if ret_flight.get('faresLeft', 0) != 0 and ret_flight.get('regularFare'):
-                                    out_num = outbound_flight['flightNumber'].replace(' ', '')
-                                    ret_num = ret_flight['flightNumber'].replace(' ', '')
+                                    out_num_raw = outbound_flight['flightNumber']
+                                    ret_num_raw = ret_flight['flightNumber']
+                                    
+                                    out_carrier = out_num_raw.replace(' ', '')[:2] if len(out_num_raw.replace(' ', '')) >= 2 else ''
+                                    ret_carrier = ret_num_raw.replace(' ', '')[:2] if len(ret_num_raw.replace(' ', '')) >= 2 else ''
+                                    
+                                    out_num = self.parse_flight_number(out_num_raw, out_carrier)
+                                    ret_num = self.parse_flight_number(ret_num_raw, ret_carrier)
                                     
                                     fares.append(RoundTripFare(
                                         outbound=OneWayFare(
@@ -492,8 +498,8 @@ class RyanairScraper(BaseScraper):
                                             fare=outbound_flight['regularFare']['fares'][0]['amount'],
                                             currency=currency,
                                             flight_number=out_num,
-                                            operating_carrier=out_num[:2],
-                                            marketing_carrier=out_num[:2],
+                                            operating_carrier=out_carrier,
+                                            marketing_carrier=out_carrier,
                                             left=outbound_flight['faresLeft']
                                         ),
                                         inbound=OneWayFare(
@@ -504,8 +510,8 @@ class RyanairScraper(BaseScraper):
                                             fare=ret_flight['regularFare']['fares'][0]['amount'],
                                             currency=currency,
                                             flight_number=ret_num,
-                                            operating_carrier=ret_num[:2],
-                                            marketing_carrier=ret_num[:2],
+                                            operating_carrier=ret_carrier,
+                                            marketing_carrier=ret_carrier,
                                             left=ret_flight['faresLeft']
                                         )
                                     ))
@@ -543,7 +549,7 @@ class RyanairScraper(BaseScraper):
                     destination=destination,
                     departure_time=dep_dt,
                     arrival_time=arr_dt,
-                    flight_number=f"{flight.carrierCode}{flight.number}"
+                    flight_number=int(flight.number)
                 ))
         
         return schedules

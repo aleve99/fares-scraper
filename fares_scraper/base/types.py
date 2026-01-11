@@ -17,7 +17,7 @@ class OneWayFare(BaseModel):
     fare: float
     currency: str
     left: int = -1
-    flight_number: str = ""
+    flight_number: int = 0
     operating_carrier: str = ""
     marketing_carrier: str = ""
 
@@ -60,7 +60,7 @@ class Schedule(BaseModel):
     destination: str
     departure_time: datetime
     arrival_time: datetime
-    flight_number: str
+    flight_number: int
 
 
 class ConcurrentResults(BaseModel):

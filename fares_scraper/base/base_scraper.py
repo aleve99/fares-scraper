@@ -1,6 +1,7 @@
 import logging
 import asyncio
 import aiohttp
+import re
 
 from abc import ABC, abstractmethod
 from typing import Optional, Dict, List, Any, Iterable, Tuple
@@ -45,6 +46,34 @@ class BaseScraper(ABC):
             default_headers=headers,
             proxies=config.proxies
         )
+
+    @staticmethod
+    def parse_flight_number(flight_num_raw: str, carrier_code: str = "") -> int:
+        """
+        Extracts the numeric part of a flight number, stripping the carrier code
+        if it's present at the beginning of the string.
+        
+        Args:
+            flight_num_raw: The raw flight number string (e.g., "FR1234", "W6 1234").
+            carrier_code: Optional carrier code to strip (e.g., "FR", "W6").
+            
+        Returns:
+            The flight number as an integer. Returns 0 if no digits are found.
+        """
+        if not flight_num_raw:
+            return 0
+            
+        # 1. Clean spaces and make uppercase for robust comparison
+        cleaned = flight_num_raw.replace(' ', '').upper()
+        carrier_code = carrier_code.replace(' ', '').upper()
+        
+        # 2. Strip carrier code from the start if it matches
+        if carrier_code and cleaned.startswith(carrier_code):
+            cleaned = cleaned[len(carrier_code):]
+            
+        # 3. Extract all remaining digits
+        digits = re.sub(r'\D', '', cleaned)
+        return int(digits) if digits else 0
 
     # --- Frozens Spots ---
     def get_airport(self, iata_code: str) -> Optional[Airport]:
