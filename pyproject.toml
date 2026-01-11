@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fares-scraper-framework"
-version = "0.6.0"
+version = "0.6.1"
 description = "A modular, asynchronous framework for scraping airline fares"
 readme = "README.md"
 authors = [
