@@ -10,12 +10,14 @@ class WizzAirConnection(BaseModel):
 
 class WizzAirCity(BaseModel):
     iata: str
+    mac: Optional[str] = None
     longitude: float
     latitude: float
     shortName: str
     countryName: str
     countryCode: str
     connections: List[WizzAirConnection]
+    isFakeStation: bool = False
 
 class WizzAirMapResponse(BaseModel):
     cities: List[WizzAirCity]

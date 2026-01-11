@@ -56,6 +56,7 @@ class WizzAirScraper(BaseScraper):
             self._connections = {
                 city.iata: tuple(conn.iata for conn in city.connections)
                 for city in model.cities
+                if not city.isFakeStation and (city.mac is None or city.mac != city.iata)
             }
             
             # Populate base scraper airports
@@ -66,6 +67,7 @@ class WizzAirScraper(BaseScraper):
                     lng=city.longitude,
                     name=city.shortName
                 ) for city in model.cities
+                if not city.isFakeStation and (city.mac is None or city.mac != city.iata)
             )
         logger.info(f"Successfully updated active airports. Found {len(self.active_airports)}.")
 
