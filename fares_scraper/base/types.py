@@ -1,7 +1,15 @@
 from pydantic import BaseModel, computed_field
 from typing import Optional, List, Any
 from datetime import datetime
+from enum import Enum
 import xxhash
+
+class GoogleFlightsSortBy(Enum):
+    PRICE = 2
+    DEPARTURE = 3
+    ARRIVAL = 4
+    DURATION = 5
+    EMISSIONS = 6
 
 class Airport(BaseModel):
     iata_code: str

@@ -3,6 +3,7 @@ import asyncio
 import logging
 from itertools import cycle
 from typing import List, Dict, Optional
+from yarl import URL
 
 logger = logging.getLogger("scraper.session_manager")
 
@@ -55,7 +56,7 @@ class SessionManager:
                         async with self._session.get(url, timeout=timeout) as response:
                             response.raise_for_status()
                             # Capture clean cookies for stateless requests
-                            cookies = self._session.cookie_jar.filter_cookies(url)
+                            cookies = self._session.cookie_jar.filter_cookies(URL(url))
                             self._warm_up_cookies = {k: v.value for k, v in cookies.items()}
                             logger.debug(f"Session warmed up via {url}. Captured {len(self._warm_up_cookies)} cookies.")
                     except Exception as e:
