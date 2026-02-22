@@ -1,10 +1,11 @@
 import logging
 import asyncio
-from datetime import datetime, timedelta
-from typing import Tuple, Dict, Any, Optional
+from datetime import date, datetime, timedelta
+from typing import Tuple, Dict, Any, Optional, List, Iterable
 
 from ...base.scrapers.gf_scraper import GoogleFlightsScraper
 from ...base.exceptions import ScraperError
+from ...base.types.common import OneWayFare, RoundTripFare
 
 logger = logging.getLogger("scraper.iberia")
 
@@ -68,6 +69,52 @@ class IberiaScraper(GoogleFlightsScraper):
             except Exception as e:
                 logger.error(f"Failed to fetch routes from {url_yesterday}: {e}")
                 raise ScraperError(f"Could not fetch Iberia routes JSON for today or yesterday. Last error: {e}")
+
+    async def search_one_way_fares(
+        self,
+        origin: str,
+        from_date: date,
+        to_date: Optional[date] = None,
+        destinations: Iterable[str] = [],
+    ) -> List[OneWayFare]:
+        """Search for one-way fares using Google Flights.
+
+        If destinations are not provided, they are fetched from the Iberia routes JSON.
+        """
+        if not destinations:
+            destinations = await self.get_destination_codes(origin)
+
+        return await super().search_one_way_fares(
+            origin=origin,
+            from_date=from_date,
+            to_date=to_date,
+            destinations=destinations,
+        )
+
+    async def search_round_trip_fares(
+        self,
+        origin: str,
+        min_days: int,
+        max_days: int,
+        from_date: date,
+        to_date: Optional[date] = None,
+        destinations: Iterable[str] = [],
+    ) -> List[RoundTripFare]:
+        """Search for round-trip fares using Google Flights.
+
+        If destinations are not provided, they are fetched from the Iberia routes JSON.
+        """
+        if not destinations:
+            destinations = await self.get_destination_codes(origin)
+
+        return await super().search_round_trip_fares(
+            origin=origin,
+            min_days=min_days,
+            max_days=max_days,
+            from_date=from_date,
+            to_date=to_date,
+            destinations=destinations,
+        )
 
     async def get_destination_codes(self, origin: str) -> Tuple[str, ...]:
         """
