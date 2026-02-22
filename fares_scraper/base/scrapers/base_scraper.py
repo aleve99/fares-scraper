@@ -193,14 +193,17 @@ class BaseScraper(ABC):
                 kwargs["cookies"] = {**initial_cookies, **provided_cookies}
 
             try:
-                response = await session.request(
-                    method=method,
-                    url=url,
-                    params=clean_params,
-                    proxy=proxy,
-                    timeout=timeout,
+                request_kwargs = {
+                    "method": method,
+                    "url": url,
+                    "params": clean_params,
+                    "timeout": timeout,
                     **kwargs
-                )
+                }
+                if proxy:
+                    request_kwargs["proxy"] = proxy
+
+                response = await session.request(**request_kwargs)
                 
                 if response.status == 429:
                     raise RateLimitError(f"Rate limited (429) on {url}")

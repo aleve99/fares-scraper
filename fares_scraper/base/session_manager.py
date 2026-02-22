@@ -29,7 +29,7 @@ class SessionManager:
         self._default_headers = default_headers
         self._header_size_limit = 16 * 1024
         
-        self._proxies = proxies or [None]
+        self._proxies = proxies if proxies else [None]
         self._proxies_loop = cycle(self._proxies)
         self._lock = asyncio.Lock()
 
@@ -53,7 +53,7 @@ class SessionManager:
                         timeout = aiohttp.ClientTimeout(total=self._timeout)
                         # If target_warm_up is relative, join with base_url
                         url = target_warm_up if "://" in target_warm_up else f"{self._base_url}{target_warm_up}"
-                        async with self._session.get(url, timeout=timeout) as response:
+                        async with self._session.get(url, timeout=timeout, proxy=self.get_next_proxy()) as response:
                             response.raise_for_status()
                             # Capture clean cookies for stateless requests
                             cookies = self._session.cookie_jar.filter_cookies(URL(url))
