@@ -38,7 +38,7 @@ class GFFlightRequest(BaseModel):
     seat_class: GFSeatClass = GFSeatClass.ECONOMY
     max_price: Optional[int] = None
     time_restrictions: Optional[list] = None
-    max_stops: GFMaxStops = GFMaxStops.ANY
+    max_stops: GFMaxStops = GFMaxStops.NON_STOP
     airlines: Optional[List[str]] = None
     max_flight_duration: Optional[int] = None
     layover_airports: Optional[list] = None
