@@ -136,7 +136,8 @@ class RyanairScraper(BaseScraper):
                                     fare=info['price']['value'],
                                     left=-1, # Not provided by this endpoint
                                     currency=info['price']['currencyCode'],
-                                    flight_number=flight_num,
+                                    operating_flight_number=flight_num,
+                                    marketing_flight_number=flight_num,
                                     operating_carrier=carrier,
                                     marketing_carrier=carrier
                                 )
@@ -493,7 +494,8 @@ class RyanairScraper(BaseScraper):
                                             destination=destination,
                                             fare=outbound_flight['regularFare']['fares'][0]['amount'],
                                             currency=currency,
-                                            flight_number=out_num,
+                                            operating_flight_number=out_num,
+                                            marketing_flight_number=out_num,
                                             operating_carrier=out_carrier,
                                             marketing_carrier=out_carrier,
                                             left=outbound_flight['faresLeft']
@@ -505,7 +507,8 @@ class RyanairScraper(BaseScraper):
                                             destination=origin,
                                             fare=ret_flight['regularFare']['fares'][0]['amount'],
                                             currency=currency,
-                                            flight_number=ret_num,
+                                            operating_flight_number=ret_num,
+                                            marketing_flight_number=ret_num,
                                             operating_carrier=ret_carrier,
                                             marketing_carrier=ret_carrier,
                                             left=ret_flight['faresLeft']
@@ -545,7 +548,8 @@ class RyanairScraper(BaseScraper):
                     destination=destination,
                     departure_time=dep_dt,
                     arrival_time=arr_dt,
-                    flight_number=int(flight.number)
+                    operating_flight_number=int(flight.number),
+                    marketing_flight_number=int(flight.number)
                 ))
         
         return schedules

@@ -17,7 +17,8 @@ class OneWayFare(BaseModel):
     fare: float
     currency: str
     left: int = -1
-    flight_number: int = 0
+    operating_flight_number: int = 0
+    marketing_flight_number: int = 0
     operating_carrier: str = ""
     marketing_carrier: str = ""
 
@@ -26,9 +27,9 @@ class OneWayFare(BaseModel):
     def flight_key(self) -> int:
         """
         Automatically generated unique identifier for the flight.
-        Format: "{operating_carrier}|{flight_number}|{departure_time}"
+        Format: "{operating_carrier}|{operating_flight_number}|{departure_time}"
         """
-        text = f"{self.operating_carrier}|{self.flight_number}|{self.dep_time.isoformat()}"
+        text = f"{self.operating_carrier}|{self.operating_flight_number}|{self.dep_time.isoformat()}"
         unsigned = xxhash.xxh64(text).intdigest()
         return unsigned if unsigned < 2**63 else unsigned - 2**64
 
@@ -37,9 +38,9 @@ class OneWayFare(BaseModel):
     def fare_key(self) -> int:
         """
         Automatically generated unique identifier for the specific fare.
-        Format: "{marketing_carrier}|{operating_carrier}|{flight_number}|{departure_time}"
+        Format: "{marketing_carrier}|{operating_carrier}|{marketing_flight_number}|{departure_time}"
         """
-        text = f"{self.marketing_carrier}|{self.operating_carrier}|{self.flight_number}|{self.dep_time.isoformat()}"
+        text = f"{self.marketing_carrier}|{self.operating_carrier}|{self.marketing_flight_number}|{self.dep_time.isoformat()}"
         unsigned = xxhash.xxh64(text).intdigest()
         return unsigned if unsigned < 2**63 else unsigned - 2**64
 
@@ -60,7 +61,8 @@ class Schedule(BaseModel):
     destination: str
     departure_time: datetime
     arrival_time: datetime
-    flight_number: int
+    operating_flight_number: int
+    marketing_flight_number: int
 
 class ConcurrentResults(BaseModel):
     results: List[Any]

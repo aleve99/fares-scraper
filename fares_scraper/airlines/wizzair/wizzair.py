@@ -244,7 +244,8 @@ class WizzAirScraper(BaseScraper):
                         destination=flight.arrivalStation,
                         fare=flight.price.amount,
                         currency=flight.price.currencyCode,
-                        flight_number=flight_num,
+                        operating_flight_number=flight_num,
+                        marketing_flight_number=flight_num,
                         operating_carrier=details.carrierCode,
                         marketing_carrier=details.carrierCode
                     )
@@ -366,7 +367,8 @@ class WizzAirScraper(BaseScraper):
                             destination=out.arrivalStation,
                             fare=out.price.amount,
                             currency=out.price.currencyCode,
-                            flight_number=out_flight_num,
+                            operating_flight_number=out_flight_num,
+                            marketing_flight_number=out_flight_num,
                             operating_carrier=out_details.carrierCode,
                             marketing_carrier=out_details.carrierCode
                         )
@@ -381,7 +383,8 @@ class WizzAirScraper(BaseScraper):
                             destination=ret.arrivalStation,
                             fare=ret.price.amount,
                             currency=ret.price.currencyCode,
-                            flight_number=ret_flight_num,
+                            operating_flight_number=ret_flight_num,
+                            marketing_flight_number=ret_flight_num,
                             operating_carrier=ret_details.carrierCode,
                             marketing_carrier=ret_details.carrierCode
                         )

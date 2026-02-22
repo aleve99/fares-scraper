@@ -431,6 +431,7 @@ class GoogleFlightsScraper(BaseScraper):
                             arr_date = flight_date + timedelta(days=1)
                         else:
                             arr_date = flight_date
+                        
                         arr_dt = datetime(
                             arr_date.year, arr_date.month, arr_date.day,
                             arr_h, arr_m,
@@ -464,7 +465,8 @@ class GoogleFlightsScraper(BaseScraper):
                                 destination=arr_iata,
                                 fare=price,
                                 currency="USD",
-                                flight_number=marketing_flight_num,
+                                operating_flight_number=operating_flight_num,
+                                marketing_flight_number=marketing_flight_num,
                                 operating_carrier=operating_carrier_code,
                                 marketing_carrier=marketing_carrier_code,
                             )
