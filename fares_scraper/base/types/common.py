@@ -29,7 +29,7 @@ class OneWayFare(BaseModel):
         Automatically generated unique identifier for the flight.
         Format: "{operating_carrier}|{operating_flight_number}|{departure_time}"
         """
-        text = f"{self.operating_carrier}|{self.operating_flight_number}|{self.dep_time.isoformat()}"
+        text = f"{self.operating_carrier}{self.operating_flight_number}|{self.dep_time.isoformat()}"
         unsigned = xxhash.xxh64(text).intdigest()
         return unsigned if unsigned < 2**63 else unsigned - 2**64
 
@@ -38,9 +38,9 @@ class OneWayFare(BaseModel):
     def fare_key(self) -> int:
         """
         Automatically generated unique identifier for the specific fare.
-        Format: "{marketing_carrier}|{operating_carrier}|{marketing_flight_number}|{departure_time}"
+        Format: "{marketing_carrier}{marketing_flight_number}|{operating_carrier}{operating_flight_number}|{departure_time}"
         """
-        text = f"{self.marketing_carrier}|{self.operating_carrier}|{self.marketing_flight_number}|{self.dep_time.isoformat()}"
+        text = f"{self.marketing_carrier}{self.marketing_flight_number}|{self.operating_carrier}{self.operating_flight_number}|{self.dep_time.isoformat()}"
         unsigned = xxhash.xxh64(text).intdigest()
         return unsigned if unsigned < 2**63 else unsigned - 2**64
 
