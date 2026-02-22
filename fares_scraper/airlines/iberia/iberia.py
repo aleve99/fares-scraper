@@ -5,7 +5,7 @@ from typing import Tuple, Dict, Any, Optional, List, Iterable
 
 from ...base.scrapers.gf_scraper import GoogleFlightsScraper
 from ...base.exceptions import ScraperError
-from ...base.types.common import OneWayFare, RoundTripFare
+from ...base.types.common import Airport, OneWayFare, RoundTripFare
 
 logger = logging.getLogger("scraper.iberia")
 
@@ -115,6 +115,37 @@ class IberiaScraper(GoogleFlightsScraper):
             to_date=to_date,
             destinations=destinations,
         )
+
+    async def update_active_airports(self) -> None:
+        """
+        Overrides update_active_airports to populate active_airports from the
+        routes JSON, excluding airports that do not have direct connections.
+        """
+        routes_data = await self._fetch_routes()
+        
+        # We only want airports that have at least one direct connection.
+        # The routes_data keys are origin IATA codes.
+        # We also want to include destinations that are mentioned in the "direct" strings.
+        
+        active_codes = set()
+        for origin, data in routes_data.items():
+            direct_str = data.get("direct", "")
+            if direct_str:
+                # This origin has direct connections, so it's active
+                active_codes.add(origin.upper())
+                # Also add the destinations as they are reachable via direct flights
+                destinations = [d.strip().upper() for d in direct_str.split(",") if d.strip()]
+                active_codes.update(destinations)
+        
+        # Create Airport objects for all active codes
+        self.active_airports = tuple(Airport(iata_code=code) for code in sorted(active_codes))
+        logger.debug(f"Updated active airports: {len(self.active_airports)} airports found with direct connections.")
+
+    def get_active_airports(self) -> Tuple[Airport, ...]:
+        """
+        Returns the cached tuple of active airports.
+        """
+        return self.active_airports
 
     async def get_destination_codes(self, origin: str) -> Tuple[str, ...]:
         """
