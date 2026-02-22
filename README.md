@@ -110,5 +110,5 @@ if __name__ == "__main__":
 - **Proxy Rotation**: Automatically rotates proxies from a configurable pool.
 - **Google Flights Default**: Any airline can be scraped via Google Flights with just a carrier code — no API reverse engineering required.
 - **Modular**: Clean separation between core framework (`base/`), airline implementations (`airlines/`), and shared utilities (`utils/`).
-- **Pydantic Models**: Type-safe fare and airport models with automatic validation and unique flight/fare keys.
+- **Pydantic Models**: Type-safe fare and airport models with automatic validation, supporting distinct operating and marketing flight numbers, and generating unique flight/fare keys.
 - **Env Config**: `ScraperSettings` loads from environment variables (`SCRAPER_TIMEOUT`, `SCRAPER_PROXIES`, etc.).
