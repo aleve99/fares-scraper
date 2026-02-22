@@ -7,11 +7,11 @@ from abc import ABC, abstractmethod
 from typing import Optional, Dict, List, Any, Iterable, Tuple
 from datetime import date, time
 
-from .session_manager import SessionManager
-from .config import settings, ScraperSettings
-from .exceptions import ScraperError, ProxyError, RateLimitError
-from .types import Airport, OneWayFare, RoundTripFare, ConcurrentResults
-from ..utils.timer import Timer
+from ..session_manager import SessionManager
+from ..config import settings, ScraperSettings
+from ..exceptions import ScraperError, ProxyError, RateLimitError
+from ..types.common import Airport, OneWayFare, RoundTripFare, ConcurrentResults
+from ...utils.timer import Timer
 
 logger = logging.getLogger("scraper.base")
 

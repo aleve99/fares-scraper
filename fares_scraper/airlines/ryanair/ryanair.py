@@ -4,7 +4,7 @@ import aiohttp
 from typing import Optional, Tuple, List, Iterable, Dict
 from datetime import date, timedelta, datetime, time
 
-from ...base.base_scraper import BaseScraper
+from ...base.scrapers.base_scraper import BaseScraper
 from ...base.types import Airport, OneWayFare, RoundTripFare, Schedule, ConcurrentResults
 from ...base.config import settings, ScraperSettings
 from .payload import get_farfnd_one_way_payload, get_availabilty_payload

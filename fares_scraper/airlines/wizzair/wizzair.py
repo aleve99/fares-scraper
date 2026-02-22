@@ -2,7 +2,7 @@ import logging
 from typing import Optional, Tuple, List, Iterable, Dict
 from datetime import date, timedelta, datetime
 
-from ...base.base_scraper import BaseScraper
+from ...base.scrapers.base_scraper import BaseScraper
 from ...base.types import Airport, OneWayFare, RoundTripFare, ConcurrentResults
 from ...base.config import settings, ScraperSettings
 from .payload import TimetableV2Payload, TimetableFlightItem, MapPayload, FlightDatesPayload, DetailedFlightsPayload

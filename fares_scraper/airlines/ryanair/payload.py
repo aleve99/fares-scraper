@@ -1,6 +1,6 @@
 from datetime import date, time
 from typing import Optional, List
-from ...base.payload import BasePayload
+from ...base.types.payload import BasePayload
 
 class AvailabilityPayload(BasePayload):
     Origin: str

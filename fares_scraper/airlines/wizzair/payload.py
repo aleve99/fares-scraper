@@ -1,7 +1,7 @@
 from pydantic import Field
 from datetime import date
 from typing import List
-from ...base.payload import BasePayload
+from ...base.types.payload import BasePayload
 
 class MapPayload(BasePayload):
     languageCode: str = "en-gb"

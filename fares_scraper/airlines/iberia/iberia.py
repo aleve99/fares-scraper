@@ -3,7 +3,7 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import Tuple, Dict, Any, Optional
 
-from ...base.google_flights import GoogleFlightsScraper
+from ...base.scrapers.gf_scraper import GoogleFlightsScraper
 from ...base.exceptions import ScraperError
 
 logger = logging.getLogger("scraper.iberia")

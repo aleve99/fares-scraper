@@ -7,8 +7,18 @@ from typing import Optional, List, Dict, Iterable, Tuple
 from datetime import date, datetime, timedelta
 
 from .base_scraper import BaseScraper
-from .config import settings, ScraperSettings
-from .types import OneWayFare, RoundTripFare, GoogleFlightsSortBy
+from ..config import settings, ScraperSettings
+from ..types.common import (
+    OneWayFare,
+    RoundTripFare,
+)
+from ..types.google_flights import (
+    GFSortBy,
+    GFTripType,
+    GFSeatClass,
+    GFMaxStops,
+    GFFlightRequest,
+)
 
 logger = logging.getLogger("scraper.google_flights")
 
@@ -249,8 +259,12 @@ class GoogleFlightsScraper(BaseScraper):
         destinations: List[str],
         date_str: str,
         airlines: Optional[List[str]] = None,
-        max_stops: int = 0,
-        price_range: Optional[Tuple[int, int]] = None,
+        max_stops: GFMaxStops = GFMaxStops.ANY,
+        max_price: Optional[int] = None,
+        time_restrictions: Optional[list] = None,
+        max_flight_duration: Optional[int] = None,
+        layover_airports: Optional[list] = None,
+        max_layover_duration: Optional[int] = None,
     ) -> List[OneWayFare]:
         """Searches Google Flights for a single day and returns parsed OneWayFare objects."""
         query_params = {
@@ -271,17 +285,32 @@ class GoogleFlightsScraper(BaseScraper):
             date_str=date_str,
             airlines=airlines,
             max_stops=max_stops,
-            price_range=price_range,
+            max_price=max_price,
+            time_restrictions=time_restrictions,
+            max_flight_duration=max_flight_duration,
+            layover_airports=layover_airports,
+            max_layover_duration=max_layover_duration,
         )
 
-        async with await self.post(
-            self.GF_URL,
-            params=query_params,
-            data=form_data,
-            cookies=self.GF_COOKIES,
-        ) as response:
-            text = await response.text()
-            return self._parse_gf_response(text, date_str)
+        for attempt in range(3):
+            async with await self.post(
+                self.GF_URL,
+                params=query_params,
+                data=form_data,
+                cookies=self.GF_COOKIES,
+            ) as response:
+                if response.status == 200:
+                    text = await response.text()
+                    return self._parse_gf_response(text, date_str)
+                elif response.status == 429:
+                    wait = (attempt + 1) * 2
+                    logger.warning(f"Rate limited for {date_str}, retrying in {wait}s...")
+                    await asyncio.sleep(wait)
+                    continue
+                else:
+                    logger.error(f"Error {response.status} for {date_str}")
+                    break
+        return []
 
     @classmethod
     def _build_gf_payload(
@@ -290,31 +319,42 @@ class GoogleFlightsScraper(BaseScraper):
         destinations: List[str],
         date_str: str,
         airlines: Optional[List[str]] = None,
-        max_stops: int = 0,
+        max_stops: GFMaxStops = GFMaxStops.ANY,
         adults: int = 1,
         children: int = 0,
-        price_range: Optional[Tuple[int, int]] = None,
+        infants_in_seat: int = 0,
+        infants_on_lap: int = 0,
+        trip_type: GFTripType = GFTripType.ONE_WAY,
+        seat_class: GFSeatClass = GFSeatClass.ECONOMY,
+        max_price: Optional[int] = None,
+        time_restrictions: Optional[list] = None,
+        max_flight_duration: Optional[int] = None,
+        layover_airports: Optional[list] = None,
+        max_layover_duration: Optional[int] = None,
     ) -> dict:
-        """Builds the Google Flights RPC form-encoded payload."""
-        inner_req = [
-            [],
-            [
-                None, None, 2, None, [], 1,
-                [adults, children, 0, 0],
-                price_range,
-                None, None, None, None, None,
-                [
-                    [
-                        [[[o, 0] for o in origins]],
-                        [[[d, 0] for d in destinations]],
-                        None, max_stops, airlines, None, date_str,
-                        None, None, None, None, None, None, None, 3
-                    ]
-                ],
-                None, None, None, 1,
-            ],
-            GoogleFlightsSortBy.PRICE.value, 0, 0, 1,
-        ]
+        """Builds the Google Flights RPC form-encoded payload using GFFlightRequest."""
+        
+        request_obj = GFFlightRequest(
+            origins=origins,
+            destinations=destinations,
+            date=date_str,
+            adults=adults,
+            children=children,
+            infants_in_seat=infants_in_seat,
+            infants_on_lap=infants_on_lap,
+            trip_type=trip_type,
+            seat_class=seat_class,
+            max_price=max_price,
+            time_restrictions=time_restrictions,
+            max_stops=max_stops,
+            airlines=airlines,
+            max_flight_duration=max_flight_duration,
+            layover_airports=layover_airports,
+            max_layover_duration=max_layover_duration,
+            sort_by=GFSortBy.PRICE,
+        )
+
+        inner_req = request_obj.encode()
 
         return {
             "f.req": json.dumps([None, json.dumps(inner_req)]),
@@ -327,6 +367,7 @@ class GoogleFlightsScraper(BaseScraper):
         if text.startswith(")]}'"):
             text = text[4:].strip()
 
+        fares: List[OneWayFare] = []
         for chunk in text.split("\n"):
             if "wrb.fr" not in chunk:
                 continue
@@ -340,19 +381,36 @@ class GoogleFlightsScraper(BaseScraper):
                 continue
 
             try:
+                if data[0][2] is None:
+                    continue
                 inner_data = json.loads(data[0][2])
             except (json.JSONDecodeError, IndexError, TypeError):
                 continue
 
-            if not inner_data or not inner_data[3]:
+            if not inner_data:
                 continue
 
-            fares: List[OneWayFare] = []
-            for flight in inner_data[3][0]:
-                try:
-                    price = flight[1][0][1]
+            # Parse both best (2) and other (3) flights
+            flights_results = [
+                item
+                for i in [2, 3]
+                if len(inner_data) > i and isinstance(inner_data[i], list) and len(inner_data[i]) > 0
+                for item in inner_data[i][0]
+            ]
 
-                    for segment in flight[0][2]:
+            for flight in flights_results:
+                try:
+                    flight_data = flight[0]
+                    price_data = flight[1]
+
+                    price = 0.0
+                    try:
+                        if price_data and price_data[0]:
+                            price = price_data[0][-1]
+                    except (IndexError, TypeError):
+                        pass
+
+                    for segment in flight_data[2]:
                         dep_iata = segment[3]
                         arr_iata = segment[6]
 
@@ -378,10 +436,25 @@ class GoogleFlightsScraper(BaseScraper):
                             arr_h, arr_m,
                         )
 
-                        carrier_code = segment[22][0]
-                        flight_num = (
+                        # Operating carrier is typically at index 22
+                        operating_carrier_code = segment[22][0]
+                        operating_flight_num = (
                             int(segment[22][1]) if segment[22][1] is not None else 0
                         )
+
+                        # By default, marketing is same as operating
+                        marketing_carrier_code = operating_carrier_code
+                        marketing_flight_num = operating_flight_num
+
+                        # Check for codeshare marketing carrier at index 15
+                        if len(segment) > 15 and segment[15] and len(segment[15]) > 0:
+                            marketing_carrier_code = segment[15][0][0]
+                            try:
+                                marketing_flight_num = (
+                                    int(segment[15][0][1]) if segment[15][0][1] is not None else 0
+                                )
+                            except (ValueError, TypeError):
+                                marketing_flight_num = 0
 
                         fares.append(
                             OneWayFare(
@@ -391,9 +464,9 @@ class GoogleFlightsScraper(BaseScraper):
                                 destination=arr_iata,
                                 fare=price,
                                 currency="USD",
-                                flight_number=flight_num,
-                                operating_carrier=carrier_code,
-                                marketing_carrier=carrier_code,
+                                flight_number=marketing_flight_num,
+                                operating_carrier=operating_carrier_code,
+                                marketing_carrier=marketing_carrier_code,
                             )
                         )
 
@@ -403,6 +476,4 @@ class GoogleFlightsScraper(BaseScraper):
                     )
                     continue
 
-            return fares
-
-        return []
+        return fares
