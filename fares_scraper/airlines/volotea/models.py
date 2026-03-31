@@ -13,6 +13,7 @@ class VoloteaPriceRow(BaseModel):
     FareBasis: str = ""
     Currency: str = "EUR"
 
+    model_config = {"extra": "ignore"}
 
 class VoloteaScheduleFlight(BaseModel):
     Departure: str
@@ -39,6 +40,10 @@ class VoloteaScheduleFlight(BaseModel):
     @classmethod
     def _optional_str_fields(cls, v: object) -> str:
         return "" if v is None else str(v)
+
+    def is_connection_itinerary(self) -> bool:
+        """True when API attaches segment list (via FCO etc.); direct offers use ``null``."""
+        return self.ConnectionInformation is not None
 
     @classmethod
     def parse_schedule_datetime(cls, raw: str) -> datetime:
@@ -69,6 +74,21 @@ class VoloteaMarketEntry(BaseModel):
     model_config = {"extra": "ignore"}
 
 
+def _flight_dict_for_parse(row: Dict[str, Any]) -> Dict[str, Any]:
+    """Drop price rows missing ``FareBasis``/``Currency`` (e.g. ``AZ`` on connections) before validation."""
+    raw_prices = row.get("Prices")
+    if not isinstance(raw_prices, list):
+        return {**row, "Prices": []}
+    kept: List[Dict[str, Any]] = []
+    for p in raw_prices:
+        if not isinstance(p, dict):
+            continue
+        if p.get("FareBasis") is None or p.get("Currency") is None:
+            continue
+        kept.append(p)
+    return {**row, "Prices": kept}
+
+
 def parse_schedule_payload(data: Dict[str, Any]) -> Dict[str, List[VoloteaScheduleFlight]]:
     """Parse top-level schedule JSON { 'ORIG-DEST': [ {...}, ... ], ... }."""
     out: Dict[str, List[VoloteaScheduleFlight]] = {}
@@ -78,5 +98,5 @@ def parse_schedule_payload(data: Dict[str, Any]) -> Dict[str, List[VoloteaSchedu
         out[key] = []
         for row in rows:
             if isinstance(row, dict):
-                out[key].append(VoloteaScheduleFlight.model_validate(row))
+                out[key].append(VoloteaScheduleFlight.model_validate(_flight_dict_for_parse(row)))
     return out

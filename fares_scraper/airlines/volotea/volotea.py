@@ -196,6 +196,8 @@ class VoloteaScraper(BaseScraper):
 
         dates_set = set()
         for f in flights:
+            if f.is_connection_itinerary():
+                continue
             if (f.CarrierCode or "").strip() != self.OPERATING_CARRIER:
                 continue
             try:
@@ -219,6 +221,9 @@ class VoloteaScraper(BaseScraper):
             return None
 
         if (flight.CarrierCode or "").strip() != self.OPERATING_CARRIER:
+            return None
+
+        if flight.is_connection_itinerary():
             return None
 
         priced = flight.price()
