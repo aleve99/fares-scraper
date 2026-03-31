@@ -75,6 +75,35 @@ class VoloteaScraper(BaseScraper):
 
         return self._stations
 
+    def _is_direct_market(self, origin: str, dest: str) -> bool:
+        """True only for Markets rows that are Enabled and not connection itineraries."""
+        origin_u, dest_u = origin.upper(), dest.upper()
+        if origin_u == dest_u:
+            return False
+
+        row = self._stations.get(origin_u)
+        if not isinstance(row, dict):
+            return False
+
+        markets = row.get("Markets")
+        if not isinstance(markets, dict):
+            return False
+
+        mrow = None
+        for k, v in markets.items():
+            if k.upper() == dest_u:
+                mrow = v
+                break
+
+        if not isinstance(mrow, dict) or not mrow.get("Enabled"):
+            return False
+        if dest_u not in self._enabled_codes:
+            return False
+        if dest_u not in self._stations:
+            return False
+
+        return not mrow.get("IsConnectionMarket", False)
+
     async def update_active_airports(self) -> None:
         logger.info("Updating Volotea active airports from stations.json...")
         data = await self._load_stations()
@@ -124,16 +153,9 @@ class VoloteaScraper(BaseScraper):
             return tuple()
 
         dests: List[str] = []
-        for dest_code_raw, mrow in markets.items():
+        for dest_code_raw in markets:
             dest_code = dest_code_raw.upper()
-
-            if dest_code == origin:
-                continue
-            if dest_code not in self._enabled_codes:
-                continue
-            if dest_code not in self._stations:
-                continue
-            if isinstance(mrow, dict) and mrow.get("Enabled"):
+            if self._is_direct_market(origin, dest_code):
                 dests.append(dest_code)
 
         return tuple(sorted(set(dests)))
@@ -222,7 +244,10 @@ class VoloteaScraper(BaseScraper):
         if not to_date:
             to_date = from_date + timedelta(days=1)
 
-        dest_list = list(destinations) if destinations else list(await self.get_destination_codes(origin))
+        if destinations:
+            dest_list = [d for d in destinations if self._is_direct_market(origin, d)]
+        else:
+            dest_list = list(await self.get_destination_codes(origin))
         if not dest_list:
             return []
 
@@ -272,7 +297,10 @@ class VoloteaScraper(BaseScraper):
         if not to_date:
             to_date = from_date + timedelta(days=30)
 
-        dest_list = list(destinations) if destinations else list(await self.get_destination_codes(origin))
+        if destinations:
+            dest_list = [d for d in destinations if self._is_direct_market(origin, d)]
+        else:
+            dest_list = list(await self.get_destination_codes(origin))
         if not dest_list:
             return []
 

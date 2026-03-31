@@ -52,6 +52,7 @@ class VoloteaMarketEntry(BaseModel):
     Price: float = 0.0
     Enabled: bool = False
     FlightType: str = ""
+    IsConnectionMarket: bool = False
 
     model_config = {"extra": "ignore"}
 
