@@ -35,17 +35,28 @@ class VoloteaScheduleFlight(BaseModel):
     def _flight_number_str(cls, v: object) -> str:
         return str(v) if v is not None else ""
 
+    @field_validator("CarrierCode", "BookingClass", mode="before")
+    @classmethod
+    def _optional_str_fields(cls, v: object) -> str:
+        return "" if v is None else str(v)
+
     @classmethod
     def parse_schedule_datetime(cls, raw: str) -> datetime:
         """Parse ``YYYYMMDDHHmm`` from Departure / Arrival."""
         return datetime.strptime(raw, VOL_SCHEDULE_DT_FMT)
 
     def price(self) -> Optional[Tuple[float, str]]:
-        """FareType ``R`` = regular (no Volotea membership / promo tier); returns ``PriceWithFee`` and currency."""
+        """Prefer ``FareType`` ``R``; else cheapest ``PriceWithFee`` among rows with a currency (e.g. ``AE`` when ``R`` is missing)."""
+        if not self.Prices:
+            return None
         for p in self.Prices:
-            if p.FareType == "R":
+            if p.FareType == "R" and p.Currency:
                 return p.PriceWithFee, p.Currency
-        return None
+        priced = [p for p in self.Prices if p.Currency]
+        if not priced:
+            return None
+        best = min(priced, key=lambda x: x.PriceWithFee)
+        return best.PriceWithFee, best.Currency
 
 
 class VoloteaMarketEntry(BaseModel):
@@ -53,6 +64,7 @@ class VoloteaMarketEntry(BaseModel):
     Enabled: bool = False
     FlightType: str = ""
     IsConnectionMarket: bool = False
+    OperatingCarrier: str = ""
 
     model_config = {"extra": "ignore"}
 

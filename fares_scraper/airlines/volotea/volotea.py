@@ -76,7 +76,7 @@ class VoloteaScraper(BaseScraper):
         return self._stations
 
     def _is_direct_market(self, origin: str, dest: str) -> bool:
-        """True only for Markets rows that are Enabled and not connection itineraries."""
+        """Enabled direct market operated by Volotea (Markets.OperatingCarrier == V7)."""
         origin_u, dest_u = origin.upper(), dest.upper()
         if origin_u == dest_u:
             return False
@@ -102,7 +102,14 @@ class VoloteaScraper(BaseScraper):
         if dest_u not in self._stations:
             return False
 
-        return not mrow.get("IsConnectionMarket", False)
+        if mrow.get("IsConnectionMarket", False):
+            return False
+
+        # Stations Markets use OperatingCarrier (V7 = Volotea metal); exclude codeshares e.g. A3.
+        if mrow.get("OperatingCarrier") != self.OPERATING_CARRIER:
+            return False
+
+        return True
 
     async def update_active_airports(self) -> None:
         logger.info("Updating Volotea active airports from stations.json...")
@@ -189,6 +196,8 @@ class VoloteaScraper(BaseScraper):
 
         dates_set = set()
         for f in flights:
+            if (f.CarrierCode or "").strip() != self.OPERATING_CARRIER:
+                continue
             try:
                 dt = self._parse_schedule_datetime(f.Departure)
                 dates_set.add(dt.date().isoformat())
@@ -207,6 +216,9 @@ class VoloteaScraper(BaseScraper):
             dep = self._parse_schedule_datetime(flight.Departure)
             arr = self._parse_schedule_datetime(flight.Arrival)
         except (ValueError, TypeError):
+            return None
+
+        if (flight.CarrierCode or "").strip() != self.OPERATING_CARRIER:
             return None
 
         priced = flight.price()
