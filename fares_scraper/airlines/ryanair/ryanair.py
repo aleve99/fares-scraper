@@ -3,6 +3,7 @@ import asyncio
 import aiohttp
 from typing import Optional, Tuple, List, Iterable, Dict
 from datetime import date, timedelta, datetime, time
+from pydantic import ValidationError
 
 from ...base.scrapers.base_scraper import BaseScraper
 from ...base.types import Airport, OneWayFare, RoundTripFare, Schedule, ConcurrentResults
@@ -486,34 +487,37 @@ class RyanairScraper(BaseScraper):
                                     out_num = self.parse_flight_number(out_num_raw, out_carrier)
                                     ret_num = self.parse_flight_number(ret_num_raw, ret_carrier)
                                     
-                                    fares.append(RoundTripFare(
-                                        outbound=OneWayFare(
-                                            dep_time=datetime.fromisoformat(outbound_flight['time'][0]),
-                                            arr_time=datetime.fromisoformat(outbound_flight['time'][1]),
-                                            origin=origin,
-                                            destination=destination,
-                                            fare=outbound_flight['regularFare']['fares'][0]['amount'],
-                                            currency=currency,
-                                            operating_flight_number=out_num,
-                                            marketing_flight_number=out_num,
-                                            operating_carrier=out_carrier,
-                                            marketing_carrier=out_carrier,
-                                            left=outbound_flight['faresLeft']
-                                        ),
-                                        inbound=OneWayFare(
-                                            dep_time=datetime.fromisoformat(ret_flight['time'][0]),
-                                            arr_time=datetime.fromisoformat(ret_flight['time'][1]),
-                                            origin=destination,
-                                            destination=origin,
-                                            fare=ret_flight['regularFare']['fares'][0]['amount'],
-                                            currency=currency,
-                                            operating_flight_number=ret_num,
-                                            marketing_flight_number=ret_num,
-                                            operating_carrier=ret_carrier,
-                                            marketing_carrier=ret_carrier,
-                                            left=ret_flight['faresLeft']
-                                        )
-                                    ))
+                                    try:
+                                        fares.append(RoundTripFare(
+                                            outbound=OneWayFare(
+                                                dep_time=datetime.fromisoformat(outbound_flight['time'][0]),
+                                                arr_time=datetime.fromisoformat(outbound_flight['time'][1]),
+                                                origin=origin,
+                                                destination=destination,
+                                                fare=outbound_flight['regularFare']['fares'][0]['amount'],
+                                                currency=currency,
+                                                operating_flight_number=out_num,
+                                                marketing_flight_number=out_num,
+                                                operating_carrier=out_carrier,
+                                                marketing_carrier=out_carrier,
+                                                left=outbound_flight['faresLeft']
+                                            ),
+                                            inbound=OneWayFare(
+                                                dep_time=datetime.fromisoformat(ret_flight['time'][0]),
+                                                arr_time=datetime.fromisoformat(ret_flight['time'][1]),
+                                                origin=destination,
+                                                destination=origin,
+                                                fare=ret_flight['regularFare']['fares'][0]['amount'],
+                                                currency=currency,
+                                                operating_flight_number=ret_num,
+                                                marketing_flight_number=ret_num,
+                                                operating_carrier=ret_carrier,
+                                                marketing_carrier=ret_carrier,
+                                                left=ret_flight['faresLeft']
+                                            )
+                                        ))
+                                    except (ValueError, ValidationError) as e:
+                                        logger.warning(f"Skipping round-trip {origin}-{destination}: missing flight identification. {e}")
                         curr_ret += timedelta(days=1)
         return fares
 

@@ -5,6 +5,7 @@ import time as time_module
 
 from typing import Optional, List, Dict, Iterable, Tuple
 from datetime import date, datetime, timedelta
+from pydantic import ValidationError
 
 from .base_scraper import BaseScraper
 from ..config import settings, ScraperSettings
@@ -472,7 +473,7 @@ class GoogleFlightsScraper(BaseScraper):
                             )
                         )
 
-                except (IndexError, TypeError, KeyError, ValueError) as e:
+                except (IndexError, TypeError, KeyError, ValueError, ValidationError) as e:
                     logger.warning(
                         f"Failed to parse Google Flights entry for {date_str}: {e}"
                     )

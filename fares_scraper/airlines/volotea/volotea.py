@@ -2,6 +2,7 @@ import logging
 import aiohttp
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, Iterable, List, Optional
+from pydantic import ValidationError
 
 from ...base.scrapers.base_scraper import BaseScraper
 from ...base.types import Airport, OneWayFare, RoundTripFare
@@ -235,19 +236,23 @@ class VoloteaScraper(BaseScraper):
         fn = self.parse_flight_number(raw_fn, carrier)
         seats = flight.AvailableSeats if flight.AvailableSeats >= 0 else -1
 
-        return OneWayFare(
-            dep_time=dep,
-            arr_time=arr,
-            origin=origin.upper(),
-            destination=destination.upper(),
-            fare=fare,
-            currency=currency,
-            left=seats,
-            operating_flight_number=fn,
-            marketing_flight_number=fn,
-            operating_carrier=carrier,
-            marketing_carrier=carrier,
-        )
+        try:
+            return OneWayFare(
+                dep_time=dep,
+                arr_time=arr,
+                origin=origin.upper(),
+                destination=destination.upper(),
+                fare=fare,
+                currency=currency,
+                left=seats,
+                operating_flight_number=fn,
+                marketing_flight_number=fn,
+                operating_carrier=carrier,
+                marketing_carrier=carrier,
+            )
+        except (ValueError, ValidationError):
+            logger.warning(f"Skipping fare {origin}-{destination} at {dep}: missing flight identification.")
+            return None
 
     async def search_one_way_fares(
         self,

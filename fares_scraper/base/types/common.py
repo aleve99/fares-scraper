@@ -1,4 +1,4 @@
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel, computed_field, model_validator
 from typing import Optional, List, Any
 from datetime import datetime
 import xxhash
@@ -21,6 +21,19 @@ class OneWayFare(BaseModel):
     marketing_flight_number: int = 0
     operating_carrier: str = ""
     marketing_carrier: str = ""
+
+    @model_validator(mode="after")
+    def _backfill_marketing_from_operating(self) -> "OneWayFare":
+        if not self.operating_carrier or not self.operating_flight_number:
+            raise ValueError(
+                f"Operating carrier/flight number missing for "
+                f"{self.origin}-{self.destination} at {self.dep_time}"
+            )
+        if not self.marketing_carrier:
+            self.marketing_carrier = self.operating_carrier
+        if not self.marketing_flight_number:
+            self.marketing_flight_number = self.operating_flight_number
+        return self
 
     @computed_field
     @property

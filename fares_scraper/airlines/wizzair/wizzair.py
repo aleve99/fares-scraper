@@ -1,6 +1,7 @@
 import logging
 from typing import Optional, Tuple, List, Iterable, Dict
 from datetime import date, timedelta, datetime
+from pydantic import ValidationError
 
 from ...base.scrapers.base_scraper import BaseScraper
 from ...base.types import Airport, OneWayFare, RoundTripFare, ConcurrentResults
@@ -236,20 +237,23 @@ class WizzAirScraper(BaseScraper):
             if details:
                 flight_num = self.parse_flight_number(details.flightNumber, details.carrierCode)
 
-                fares.append(
-                    OneWayFare(
-                        dep_time=flight.departureDate,
-                        arr_time=details.arrivalDateTime,
-                        origin=flight.departureStation,
-                        destination=flight.arrivalStation,
-                        fare=flight.price.amount,
-                        currency=flight.price.currencyCode,
-                        operating_flight_number=flight_num,
-                        marketing_flight_number=flight_num,
-                        operating_carrier=details.carrierCode,
-                        marketing_carrier=details.carrierCode
+                try:
+                    fares.append(
+                        OneWayFare(
+                            dep_time=flight.departureDate,
+                            arr_time=details.arrivalDateTime,
+                            origin=flight.departureStation,
+                            destination=flight.arrivalStation,
+                            fare=flight.price.amount,
+                            currency=flight.price.currencyCode,
+                            operating_flight_number=flight_num,
+                            marketing_flight_number=flight_num,
+                            operating_carrier=details.carrierCode,
+                            marketing_carrier=details.carrierCode
+                        )
                     )
-                )
+                except (ValueError, ValidationError):
+                    logger.warning(f"Skipping fare {flight.departureStation}-{flight.arrivalStation} at {flight.departureDate}: missing flight identification.")
             else:
                 logger.warning(f"Detailed info missing for {flight.departureStation}-{flight.arrivalStation} on {flight.departureDate}. Skipping fare.")
 
@@ -357,39 +361,39 @@ class WizzAirScraper(BaseScraper):
                             logger.warning(f"Detailed info missing for inbound {ret.departureStation}-{ret.arrivalStation} on {ret.departureDate}. Skipping combination.")
                             continue
 
-                        # Construct outbound OneWayFare
                         out_flight_num = self.parse_flight_number(out_details.flightNumber, out_details.carrierCode)
-
-                        out_fare = OneWayFare(
-                            dep_time=out.departureDate,
-                            arr_time=out_details.arrivalDateTime,
-                            origin=out.departureStation,
-                            destination=out.arrivalStation,
-                            fare=out.price.amount,
-                            currency=out.price.currencyCode,
-                            operating_flight_number=out_flight_num,
-                            marketing_flight_number=out_flight_num,
-                            operating_carrier=out_details.carrierCode,
-                            marketing_carrier=out_details.carrierCode
-                        )
-                        
-                        # Construct inbound OneWayFare
                         ret_flight_num = self.parse_flight_number(ret_details.flightNumber, ret_details.carrierCode)
 
-                        ret_fare = OneWayFare(
-                            dep_time=ret.departureDate,
-                            arr_time=ret_details.arrivalDateTime,
-                            origin=ret.departureStation,
-                            destination=ret.arrivalStation,
-                            fare=ret.price.amount,
-                            currency=ret.price.currencyCode,
-                            operating_flight_number=ret_flight_num,
-                            marketing_flight_number=ret_flight_num,
-                            operating_carrier=ret_details.carrierCode,
-                            marketing_carrier=ret_details.carrierCode
-                        )
-                        
-                        all_round_trip_fares.append(RoundTripFare(outbound=out_fare, inbound=ret_fare))
+                        try:
+                            out_fare = OneWayFare(
+                                dep_time=out.departureDate,
+                                arr_time=out_details.arrivalDateTime,
+                                origin=out.departureStation,
+                                destination=out.arrivalStation,
+                                fare=out.price.amount,
+                                currency=out.price.currencyCode,
+                                operating_flight_number=out_flight_num,
+                                marketing_flight_number=out_flight_num,
+                                operating_carrier=out_details.carrierCode,
+                                marketing_carrier=out_details.carrierCode
+                            )
+
+                            ret_fare = OneWayFare(
+                                dep_time=ret.departureDate,
+                                arr_time=ret_details.arrivalDateTime,
+                                origin=ret.departureStation,
+                                destination=ret.arrivalStation,
+                                fare=ret.price.amount,
+                                currency=ret.price.currencyCode,
+                                operating_flight_number=ret_flight_num,
+                                marketing_flight_number=ret_flight_num,
+                                operating_carrier=ret_details.carrierCode,
+                                marketing_carrier=ret_details.carrierCode
+                            )
+
+                            all_round_trip_fares.append(RoundTripFare(outbound=out_fare, inbound=ret_fare))
+                        except (ValueError, ValidationError) as e:
+                            logger.warning(f"Skipping round-trip {out.departureStation}-{out.arrivalStation}: missing flight identification. {e}")
         
         logger.info(f"Scraped {origin} round-trip fares in {results.execution_time:.2f}s, found {len(all_round_trip_fares)} fares.")
         return all_round_trip_fares
