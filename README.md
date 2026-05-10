@@ -16,6 +16,9 @@ A modular, asynchronous framework for scraping airline fares. Supports airline-s
     - `airlines/`: Airline-specific implementations.
         - `ryanair/`: Ryanair (Farfnd + Availability APIs).
         - `wizzair/`: WizzAir (timetableV2 + travelAgencyBooking APIs).
+        - `volotea/`: Volotea (static JSON CDN).
+        - `iberia/`: Iberia (Google Flights + Smartvel routes).
+        - `vueling/`: Vueling (`apiwww` routes + optional FlightCalendar with bearer token).
     - `utils/`: Shared utilities.
 - `pyproject.toml`: Modern packaging configuration.
 - `requirements.txt`: Package dependencies for pip.
