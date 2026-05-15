@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 from typing import Any, Dict, Iterable, List, Optional
 from pydantic import ValidationError
 
-from ...base.scrapers.base_scraper import BaseScraper
+from ...base.scrapers.base_scraper import AiohttpScraper
 from ...base.types import Airport, OneWayFare, RoundTripFare
 from ...base.config import settings, ScraperSettings
 from .models import VoloteaScheduleFlight, parse_schedule_payload
@@ -15,7 +15,7 @@ _JSON_CDN_DIST = "https://json.volotea.com/dist"
 STATIONS_URL = f"{_JSON_CDN_DIST}/stations/stations.json"
 
 
-class VoloteaScraper(BaseScraper):
+class VoloteaScraper(AiohttpScraper):
     OPERATING_CARRIER = "V7"
     JSON_CDN_DIST = _JSON_CDN_DIST
 

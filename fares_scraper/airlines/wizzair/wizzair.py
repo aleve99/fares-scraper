@@ -3,7 +3,7 @@ from typing import Optional, Tuple, List, Iterable, Dict
 from datetime import date, timedelta, datetime
 from pydantic import ValidationError
 
-from ...base.scrapers.base_scraper import BaseScraper
+from ...base.scrapers.base_scraper import AiohttpScraper
 from ...base.types import Airport, OneWayFare, RoundTripFare, ConcurrentResults
 from ...base.config import settings, ScraperSettings
 from .payload import TimetableV2Payload, TimetableFlightItem, MapPayload, FlightDatesPayload, DetailedFlightsPayload
@@ -18,7 +18,7 @@ from .models import (
 
 logger = logging.getLogger("scraper.wizzair")
 
-class WizzAirScraper(BaseScraper):
+class WizzAirScraper(AiohttpScraper):
     def __init__(self, config: ScraperSettings = settings):
         super().__init__(
             config=config,

@@ -7,7 +7,7 @@ from typing import Optional, List, Dict, Iterable, Tuple
 from datetime import date, datetime, timedelta
 from pydantic import ValidationError
 
-from .base_scraper import BaseScraper
+from .base_scraper import AiohttpScraper
 from ..config import settings, ScraperSettings
 from ..types.common import (
     OneWayFare,
@@ -24,7 +24,7 @@ from ..types.google_flights import (
 logger = logging.getLogger("scraper.google_flights")
 
 
-class GoogleFlightsScraper(BaseScraper):
+class GoogleFlightsScraper(AiohttpScraper):
     """
     Concrete BaseScraper that uses Google Flights as the data source.
 

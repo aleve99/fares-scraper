@@ -1,4 +1,4 @@
-from .base_scraper import BaseScraper
+from .base_scraper import BaseScraper, AiohttpScraper, CurlCffiScraper
 from .gf_scraper import GoogleFlightsScraper
 
-__all__ = ["BaseScraper", "GoogleFlightsScraper"]
+__all__ = ["BaseScraper", "AiohttpScraper", "CurlCffiScraper", "GoogleFlightsScraper"]
