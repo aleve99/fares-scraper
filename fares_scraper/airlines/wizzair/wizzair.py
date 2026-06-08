@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Optional, Tuple, List, Iterable, Dict
 from datetime import date, timedelta, datetime
 from pydantic import ValidationError
@@ -18,12 +19,21 @@ from .models import (
 
 logger = logging.getLogger("scraper.wizzair")
 
+_API_URL_RE = re.compile(
+    r'apiUrl:"https://be\.wizzair\.com/(?P<version>[^/"]+)/Api"'
+)
+_BUILD_NUMBER_FALLBACK_RE = re.compile(
+    r'be\.wizzair\.com/(?P<version>\d+\.\d+\.\d+)'
+)
+
 class WizzAirScraper(AiohttpScraper):
+    WARM_UP_URL = "https://www.wizzair.com/"
+
     def __init__(self, config: ScraperSettings = settings):
         super().__init__(
             config=config,
             base_url="https://be.wizzair.com",
-            warm_up_url="https://www.wizzair.com/",
+            warm_up_url=self.WARM_UP_URL,
             default_headers={
 
             }
@@ -32,17 +42,41 @@ class WizzAirScraper(AiohttpScraper):
         self._connections: Dict[str, Tuple[str, ...]] = {}
 
     async def _update_build_number(self):
-        """Fetches the current build number from wizzair.com."""
-        url = self._build_number_url()
+        """Fetches the current API version from wizzair.com homepage config."""
+        url = self.WARM_UP_URL
         async with await self.get(url) as res:
             text = await res.text()
-            # The response is usually like "SSR https://be.wizzair.com/27.39.0"
-            if "be.wizzair.com/" in text:
-                self.build_number = text.split("be.wizzair.com/")[1].strip()
-                logger.info(f"Updated WizzAir build number: {self.build_number}")
-            else:
-                logger.error(f"Failed to parse build number from: {text}")
-                raise ValueError(f"Could not find build number in response: {text}")
+
+        try:
+            self.build_number = self._parse_build_number_from_html(text)
+            logger.info(f"Updated WizzAir build number: {self.build_number}")
+            return
+        except ValueError:
+            pass
+
+        # Legacy /buildnumber endpoint (plain text, may return in future)
+        legacy_url = self._build_number_url()
+        async with await self.get(legacy_url) as res:
+            legacy_text = await res.text()
+        if "be.wizzair.com/" in legacy_text and legacy_text.strip() and not legacy_text.lstrip().startswith("<"):
+            self.build_number = legacy_text.split("be.wizzair.com/")[1].strip()
+            logger.info(f"Updated WizzAir build number from legacy endpoint: {self.build_number}")
+            return
+
+        logger.error(f"Failed to parse build number from homepage: {text[:200]}")
+        raise ValueError(f"Could not find build number in response: {text[:200]}")
+
+    @classmethod
+    def _parse_build_number_from_html(cls, text: str) -> str:
+        match = _API_URL_RE.search(text)
+        if match:
+            return match.group("version")
+
+        match = _BUILD_NUMBER_FALLBACK_RE.search(text)
+        if match:
+            return match.group("version")
+
+        raise ValueError(f"Could not find build number in response: {text[:200]}")
 
     async def update_active_airports(self):
         if not self.build_number:
@@ -269,6 +303,9 @@ class WizzAirScraper(AiohttpScraper):
         to_date: Optional[date] = None,
         destinations: Iterable[str] = []
     ) -> List[RoundTripFare]:
+        if not self.build_number:
+            await self._update_build_number()
+
         if not destinations:
             destinations = await self.get_destination_codes(origin)
         
